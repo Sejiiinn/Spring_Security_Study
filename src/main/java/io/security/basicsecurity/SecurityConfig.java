@@ -1,22 +1,28 @@
 package io.security.basicsecurity;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 @Configuration
-@EnableWebSecurity
+@EnableWebSecurity  // 웹 보안 활성화
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    UserDetailsService userDetailsService;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -26,26 +32,32 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
         http // 인증 정책
                 .formLogin()
-//                .loginPage("/loginPage")                    // 실제 로그인이 이루어지는 페이지
-                .defaultSuccessUrl("/")                     // 로그인 성공 후 이동 페이지
-                .failureUrl("/login")     // 로그인 실패 후 이동 페이지
-                .usernameParameter("userId")                // 아이디 파라미터명 설정
-                .passwordParameter("passwd")                // 패스워드 파라미터명 설정
-                .loginProcessingUrl("/login_proc")          // 로그인 Form Action Url
-                .successHandler(new AuthenticationSuccessHandler() {    // 로그인 성공 후 핸들러
+                .defaultSuccessUrl("/");
+
+        http // 로그아웃
+                .logout()
+                .logoutUrl("/logout")           // 로그아웃 페이지
+                .logoutSuccessUrl("/login")     // 로그아웃 후 이동할 페이지
+                .addLogoutHandler(new LogoutHandler() { // 로그아웃 핸들러
                     @Override
-                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-                        System.out.println("authentication = " + authentication.getName());
-                        response.sendRedirect("/");
+                    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+                        HttpSession session = request.getSession();
+                        session.invalidate();   // 세션 무효화
                     }
                 })
-                .failureHandler(new AuthenticationFailureHandler() {    // 로그인 실패 후 핸들러
+                .logoutSuccessHandler(new LogoutSuccessHandler() { // 로그아웃 성공 후 핸들러
                     @Override
-                    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-                        System.out.println("exception = " + exception.getMessage());
+                    public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
                         response.sendRedirect("/login");
                     }
                 })
-                .permitAll();
+                .deleteCookies("remember me") // 쿠키 삭제
+
+        .and()
+                .rememberMe()
+                .rememberMeParameter("remember") // 기본값: remember-me
+                .tokenValiditySeconds(3600)      // 기본값: 14일
+                .alwaysRemember(true)            // 리멤버 미 기능 항상 실행 (기본값: false)
+                .userDetailsService(userDetailsService);  // 리멤버 미 기능 이용 시 인증 계정 조회를 위해 필요
     }
 }

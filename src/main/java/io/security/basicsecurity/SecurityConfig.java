@@ -59,5 +59,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .tokenValiditySeconds(3600)      // 기본값: 14일
                 .alwaysRemember(true)            // 리멤버 미 기능 항상 실행 (기본값: false)
                 .userDetailsService(userDetailsService);  // 리멤버 미 기능 이용 시 인증 계정 조회를 위해 필요
+
+        http // 세션 관리
+                .sessionManagement()              // 세션 관리 적용
+                .invalidSessionUrl("/invalid")    // 유효하지 않은 세션일 시 이동할 페이지
+                .maximumSessions(1)               // 최대 허용 세션 개수
+                .maxSessionsPreventsLogin(true)   // 최대 허용 개수 초과 시 정책, false: 기존 세션 만료(default), true: 인증 차단
+                .expiredUrl("/expired")           // 세션이 만료된 경우 이동할 페이지
+        ;
     }
 }

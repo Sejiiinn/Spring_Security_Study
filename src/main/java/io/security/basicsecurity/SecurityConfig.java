@@ -2,6 +2,7 @@ package io.security.basicsecurity;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -24,6 +25,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     UserDetailsService userDetailsService;
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.inMemoryAuthentication().withUser("user").password("{noop}1111").roles("USER");
+        auth.inMemoryAuthentication().withUser("sys").password("{noop}1111").roles("SYS","USER"); // 여러 권한 지정 가능
+        auth.inMemoryAuthentication().withUser("admin").password("{noop}1111").roles("ADMIN" ,"SYS" ,"USER");
+    }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -73,5 +81,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement()  // 세션 관리
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 스프링 시큐리티가 필요 시 세션 생성 (default)
         ;
+
+        http
+                .antMatcher("/shop/**") // 해당 경로와 매치되는 요청들을 검사
+                .authorizeRequests() // 보안 검사 기능 시작
+                .antMatchers("/shop/login", "/shop/users/**").permitAll() // 해당 경로에 대한 모든 접근 허용
+                .antMatchers("/shop/mypage").hasRole("USER") // 해당 경로에 대해 USER 권한이 있는지 인가 심사
+                .antMatchers("/shop/admin/pay").access("hasRole('ADMIN')") // access 내부의 표현식에 통과하는지 인가 심사
+                .antMatchers("/shop/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
+                .anyRequest().authenticated()
+        ;
+        
     }
 }

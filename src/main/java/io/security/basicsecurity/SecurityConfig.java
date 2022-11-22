@@ -2,16 +2,23 @@ package io.security.basicsecurity;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -41,7 +48,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
         http // 인증 정책
                 .formLogin()
-                .defaultSuccessUrl("/");
+                .successHandler(new AuthenticationSuccessHandler() {
+                    @Override
+                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+                        RequestCache requestCache = new HttpSessionRequestCache();
+                        SavedRequest savedRequest = requestCache.getRequest(request, response); // 요청 정보가 저장되어 있는 클래스
+                        String redirectUrl = savedRequest.getRedirectUrl(); // 인증 전 사용자가 요청했던 url 정보
+                        response.sendRedirect(redirectUrl); // 인증에 성공한 상태이므로 원래 가려 했던 url로 redirect
+                    }
+                });
 
         http // 로그아웃
                 .logout()
@@ -83,13 +98,28 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         ;
 
         http
-                .antMatcher("/shop/**") // 해당 경로와 매치되는 요청들을 검사
                 .authorizeRequests() // 보안 검사 기능 시작
-                .antMatchers("/shop/login", "/shop/users/**").permitAll() // 해당 경로에 대한 모든 접근 허용
-                .antMatchers("/shop/mypage").hasRole("USER") // 해당 경로에 대해 USER 권한이 있는지 인가 심사
-                .antMatchers("/shop/admin/pay").access("hasRole('ADMIN')") // access 내부의 표현식에 통과하는지 인가 심사
-                .antMatchers("/shop/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
+                .antMatchers("/login").permitAll() // 해당 경로에 대한 모든 접근 허용
+                .antMatchers("/user").hasRole("USER") // 해당 경로에 대해 USER 권한이 있는지 인가 심사
+                .antMatchers("/admin/pay").access("hasRole('ADMIN')") // access 내부의 표현식에 통과하는지 인가 심사
+                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
                 .anyRequest().authenticated()
+        ;
+
+        http
+                .exceptionHandling()
+                .authenticationEntryPoint(new AuthenticationEntryPoint() { // 인증 예외 처리
+                    @Override
+                    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+                        response.sendRedirect("/login");
+                    }
+                })
+                .accessDeniedHandler(new AccessDeniedHandler() { // 인가 예외 처리
+                    @Override
+                    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
+
+                    }
+                })
         ;
         
     }

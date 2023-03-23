@@ -97,14 +97,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 스프링 시큐리티가 필요 시 세션 생성 (default)
         ;
 
-        http
-                .authorizeRequests() // 보안 검사 기능 시작
-                .antMatchers("/login").permitAll() // 해당 경로에 대한 모든 접근 허용
-                .antMatchers("/user").hasRole("USER") // 해당 경로에 대해 USER 권한이 있는지 인가 심사
-                .antMatchers("/admin/pay").access("hasRole('ADMIN')") // access 내부의 표현식에 통과하는지 인가 심사
-                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
-                .anyRequest().authenticated()
-        ;
+//        http
+//                .authorizeRequests() // 보안 검사 기능 시작
+//                .antMatchers("/login").permitAll() // 해당 경로에 대한 모든 접근 허용
+//                .antMatchers("/user").hasRole("USER") // 해당 경로에 대해 USER 권한이 있는지 인가 심사
+//                .antMatchers("/admin/pay").access("hasRole('ADMIN')") // access 내부의 표현식에 통과하는지 인가 심사
+//                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
+//                .anyRequest().authenticated()
+//        ;
 
         http
                 .exceptionHandling()

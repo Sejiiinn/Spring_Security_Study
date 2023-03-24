@@ -1,4 +1,4 @@
-package io.security.basicsecurity.security;
+package io.security.basicsecurity.security.metadatasource;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.ConfigAttribute;

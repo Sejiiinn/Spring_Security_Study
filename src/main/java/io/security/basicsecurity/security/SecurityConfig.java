@@ -1,18 +1,29 @@
 package io.security.basicsecurity.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.SecurityProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.access.AccessDecisionManager;
+import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.vote.AffirmativeBased;
+import org.springframework.security.access.vote.RoleVoter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
@@ -25,25 +36,24 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity  // 웹 보안 활성화
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+@RequiredArgsConstructor
+public class SecurityConfig {
 
-    @Autowired
-    UserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication().withUser("user").password("{noop}1111").roles("USER");
-        auth.inMemoryAuthentication().withUser("sys").password("{noop}1111").roles("SYS","USER"); // 여러 권한 지정 가능
-        auth.inMemoryAuthentication().withUser("admin").password("{noop}1111").roles("ADMIN" ,"SYS" ,"USER");
-    }
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http // 인가 정책
                 .authorizeRequests()
+                .antMatchers("/login").permitAll() // 해당 경로에 대한 모든 접근 허용
+                .antMatchers("/user").hasRole("USER") // 해당 경로에 대해 USER 권한이 있는지 인가 심사
+                .antMatchers("/admin/pay").access("hasRole('ADMIN')") // access 내부의 표현식에 통과하는지 인가 심사
+                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
                 .anyRequest().authenticated();
 
         http // 인증 정책
@@ -97,14 +107,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 스프링 시큐리티가 필요 시 세션 생성 (default)
         ;
 
-//        http
-//                .authorizeRequests() // 보안 검사 기능 시작
-//                .antMatchers("/login").permitAll() // 해당 경로에 대한 모든 접근 허용
-//                .antMatchers("/user").hasRole("USER") // 해당 경로에 대해 USER 권한이 있는지 인가 심사
-//                .antMatchers("/admin/pay").access("hasRole('ADMIN')") // access 내부의 표현식에 통과하는지 인가 심사
-//                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
-//                .anyRequest().authenticated()
-//        ;
 
         http
                 .exceptionHandling()
@@ -121,6 +123,34 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     }
                 })
         ;
+
+        http.addFilterBefore(customFilterSecurityInterceptor(), FilterSecurityInterceptor.class);
+
+        return http.build();
         
+    }
+
+    @Bean
+    public AccessDecisionManager affirmativeBased() {
+        AffirmativeBased affirmativeBased = new AffirmativeBased(getAccessDecisionVoters());
+        return affirmativeBased;
+    }
+
+    private List<AccessDecisionVoter<?>> getAccessDecisionVoters() {
+        return Arrays.asList(new RoleVoter());
+    }
+
+    @Bean
+    public FilterSecurityInterceptor customFilterSecurityInterceptor() throws Exception {
+        FilterSecurityInterceptor filterSecurityInterceptor = new FilterSecurityInterceptor();
+
+        filterSecurityInterceptor.setSecurityMetadataSource(urlFilterInvocationMetadataSource());
+        filterSecurityInterceptor.setAccessDecisionManager(affirmativeBased());
+        return filterSecurityInterceptor;
+    }
+
+    @Bean
+    public UrlFilterInvocationSecurityMetadataSource urlFilterInvocationMetadataSource() {
+        return new UrlFilterInvocationSecurityMetadataSource();
     }
 }

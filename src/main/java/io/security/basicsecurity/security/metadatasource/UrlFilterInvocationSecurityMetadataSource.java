@@ -1,28 +1,26 @@
 package io.security.basicsecurity.security.metadatasource;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.ConfigAttribute;
-import org.springframework.security.access.SecurityConfig;
 import org.springframework.security.web.FilterInvocation;
 import org.springframework.security.web.access.intercept.FilterInvocationSecurityMetadataSource;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
 @Slf4j
+@RequiredArgsConstructor
 public class UrlFilterInvocationSecurityMetadataSource implements FilterInvocationSecurityMetadataSource {
 
-    private LinkedHashMap<RequestMatcher, List<ConfigAttribute>> requestMap = new LinkedHashMap<>();
+    // 요청에 대한 권한 순서 유지를 위해 일반 HashMap이 아닌 LinkedHashMap을 사용함
+    private final LinkedHashMap<RequestMatcher, List<ConfigAttribute>> requestMap;
 
     @Override
     public Collection<ConfigAttribute> getAttributes(Object object) throws IllegalArgumentException {
 
         HttpServletRequest request = ((FilterInvocation) object).getRequest();
-
-        // 테스트용. 해당 코드 대신 DB에서 직접 가져오는 로직 구현하면 됨
-        requestMap.put(new AntPathRequestMatcher("/mypage"), Arrays.asList(new SecurityConfig("ROLE_USER")));
 
         if (requestMap != null) {
             for (Map.Entry<RequestMatcher, List<ConfigAttribute>> entry : requestMap.entrySet()) {

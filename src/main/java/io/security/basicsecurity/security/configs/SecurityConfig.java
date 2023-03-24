@@ -1,6 +1,8 @@
 package io.security.basicsecurity.security.configs;
 
+import io.security.basicsecurity.security.factory.UrlResourcesMapFactoryBean;
 import io.security.basicsecurity.security.metadatasource.UrlFilterInvocationSecurityMetadataSource;
+import io.security.basicsecurity.service.SecurityResourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,6 +42,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
+    private final SecurityResourceService securityResourceService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -145,7 +148,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UrlFilterInvocationSecurityMetadataSource urlFilterInvocationMetadataSource() {
-        return new UrlFilterInvocationSecurityMetadataSource();
+    public UrlFilterInvocationSecurityMetadataSource urlFilterInvocationMetadataSource() throws Exception {
+        return new UrlFilterInvocationSecurityMetadataSource(urlResourcesMapFactoryBean().getObject());
+    }
+
+    @Bean
+    public UrlResourcesMapFactoryBean urlResourcesMapFactoryBean() {
+        UrlResourcesMapFactoryBean urlResourcesMapFactoryBean = new UrlResourcesMapFactoryBean();
+        urlResourcesMapFactoryBean.setSecurityResourceService(securityResourceService);
+
+        return urlResourcesMapFactoryBean;
     }
 }

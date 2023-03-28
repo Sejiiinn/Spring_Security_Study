@@ -149,7 +149,7 @@ public class SecurityConfig {
 
     @Bean
     public UrlFilterInvocationSecurityMetadataSource urlFilterInvocationMetadataSource() throws Exception {
-        return new UrlFilterInvocationSecurityMetadataSource(urlResourcesMapFactoryBean().getObject());
+        return new UrlFilterInvocationSecurityMetadataSource(urlResourcesMapFactoryBean().getObject(), securityResourceService);
     }
 
     @Bean

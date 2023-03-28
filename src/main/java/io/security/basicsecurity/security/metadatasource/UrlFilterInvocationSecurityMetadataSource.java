@@ -1,5 +1,6 @@
 package io.security.basicsecurity.security.metadatasource;
 
+import io.security.basicsecurity.service.SecurityResourceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.ConfigAttribute;
@@ -16,6 +17,7 @@ public class UrlFilterInvocationSecurityMetadataSource implements FilterInvocati
 
     // 요청에 대한 권한 순서 유지를 위해 일반 HashMap이 아닌 LinkedHashMap을 사용함
     private final LinkedHashMap<RequestMatcher, List<ConfigAttribute>> requestMap;
+    private final SecurityResourceService securityResourceService;
 
     @Override
     public Collection<ConfigAttribute> getAttributes(Object object) throws IllegalArgumentException {
@@ -45,5 +47,17 @@ public class UrlFilterInvocationSecurityMetadataSource implements FilterInvocati
     @Override
     public boolean supports(Class<?> clazz) {
         return FilterInvocation.class.isAssignableFrom(clazz);
+    }
+
+    public void reload() {
+        LinkedHashMap<RequestMatcher, List<ConfigAttribute>> reloadedMap = securityResourceService.getResourceList();
+        Iterator<Map.Entry<RequestMatcher, List<ConfigAttribute>>> iterator = reloadedMap.entrySet().stream().iterator();
+
+        requestMap.clear();
+
+        while (iterator.hasNext()) {
+            Map.Entry<RequestMatcher, List<ConfigAttribute>> entry = iterator.next();
+            requestMap.put(entry.getKey(), entry.getValue());
+        }
     }
 }

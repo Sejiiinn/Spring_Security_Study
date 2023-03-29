@@ -1,6 +1,7 @@
 package io.security.basicsecurity.security.configs;
 
 import io.security.basicsecurity.security.factory.UrlResourcesMapFactoryBean;
+import io.security.basicsecurity.security.filter.PermitAllFilter;
 import io.security.basicsecurity.security.metadatasource.UrlFilterInvocationSecurityMetadataSource;
 import io.security.basicsecurity.service.SecurityResourceService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,8 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final SecurityResourceService securityResourceService;
+
+    private String[] permitAllResources = {"/", "/login", "user/login/**"};
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -139,12 +142,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public FilterSecurityInterceptor customFilterSecurityInterceptor() throws Exception {
-        FilterSecurityInterceptor filterSecurityInterceptor = new FilterSecurityInterceptor();
+    public PermitAllFilter customFilterSecurityInterceptor() throws Exception {
+        PermitAllFilter permitAllFilter = new PermitAllFilter(permitAllResources);
 
-        filterSecurityInterceptor.setSecurityMetadataSource(urlFilterInvocationMetadataSource());
-        filterSecurityInterceptor.setAccessDecisionManager(affirmativeBased());
-        return filterSecurityInterceptor;
+        permitAllFilter.setSecurityMetadataSource(urlFilterInvocationMetadataSource());
+        permitAllFilter.setAccessDecisionManager(affirmativeBased());
+        return permitAllFilter;
     }
 
     @Bean

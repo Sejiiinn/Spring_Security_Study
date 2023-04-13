@@ -51,3 +51,13 @@ ALTER TABLE role_resources
 
 ALTER TABLE role_resources
     ADD CONSTRAINT fk_rolres_on_role FOREIGN KEY (role_id) REFERENCES role (role_id);
+CREATE TABLE role_hierarchy
+(
+    id          BIGINT NOT NULL,
+    child_name  VARCHAR(255),
+    parent_name BIGINT,
+    CONSTRAINT pk_role_hierarchy PRIMARY KEY (id)
+);
+
+ALTER TABLE role_hierarchy
+    ADD CONSTRAINT FK_ROLE_HIERARCHY_ON_PARENT_NAME FOREIGN KEY (parent_name) REFERENCES role_hierarchy (child_name);
